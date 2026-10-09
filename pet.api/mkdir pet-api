@@ -1,0 +1,4 @@
+mkdir pet-api
+cd pet-api
+npm init -y
+npm install express
