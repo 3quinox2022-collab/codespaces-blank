@@ -21,5 +21,152 @@
     </ul>
 
     <script src="script.js"></script>
+    <!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>PET Project - Disciplinas</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    ul { list-style: none; padding: 0; }
+    li { background: #f4f4f4; margin-bottom: 10px; padding: 10px; border-radius: 4px; display: flex; flex-direction: column; gap: 5px; }
+    .linha-principal { display: flex; justify-content: space-between; align-items: center; }
+    button { cursor: pointer; margin-left: 5px; }
+    .detalhes { font-size: 0.9em; color: #555; display: none; margin-top: 5px; border-left: 3px solid #007BFF; padding-left: 8px; }
+  </style>
+</head>
+<body>
+
+  <h1>Minhas Disciplinas</h1>
+
+  <!-- Formulário opcional para cadastrar novas -->
+  <div style="margin-bottom: 20px;">
+    <input type="text" id="inputNome" placeholder="Nome da disciplina">
+    <input type="number" id="inputPeriodo" placeholder="Período">
+    <button onclick="cadastrarDisciplina()">Adicionar</button>
+  </div>
+
+  <ul id="listaDisciplinas"></ul>
+
+  <script>
+    async function carregarDisciplinas() {
+      try {
+        const resposta = await fetch('/api/disciplinas');
+        const disciplinas = await resposta.json();
+        
+        const ul = document.getElementById('listaDisciplinas');
+        ul.innerHTML = '';
+        
+        disciplinas.forEach(d => {
+          const li = document.createElement('li');
+          li.id = `disciplina-${d.id}`;
+          
+          li.innerHTML = `
+            <div class="linha-principal">
+              <!-- Etapa 2: Clica no nome para ver detalhes -->
+              <span onclick="verDetalhes(${d.id})" style="cursor: pointer; font-weight: bold;">
+                ${d.nome}
+              </span>
+              <div>
+                <!-- Etapa 3: Editar -->
+                <button onclick="editarDisciplina(${d.id})">Editar</button>
+                <!-- Etapa 1: Remover -->
+                <button onclick="removerDisciplina(${d.id})" style="background-color: #ff4d4d; color: white; border: none; padding: 4px 8px; border-radius: 3px;">Remover</button>
+              </div>
+            </div>
+            <!-- Div de detalhes da Etapa 2 -->
+            <div id="detalhes-${d.id}" class="detalhes"></div>
+          `;
+          
+          ul.appendChild(li);
+        });
+      } catch (erro) {
+        console.error("Erro ao carregar disciplinas:", erro);
+      }
+    }
+
+    // --- ETAPA 1: Remover ---
+    async function removerDisciplina(id) {
+      const resposta = await fetch(`/api/disciplinas/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (resposta.status === 204) {
+        document.getElementById(`disciplina-${id}`).remove();
+      } else {
+        const erroJson = await resposta.json();
+        alert(`Erro ao remover: ${erroJson.erro || resposta.status}`);
+      }
+    }
+
+    // --- ETAPA 2: Detalhes ---
+    async function verDetalhes(id) {
+      const divDetalhes = document.getElementById(`detalhes-${id}`);
+      
+      // Se já estiver visível, esconde
+      if (divDetalhes.style.display === 'block') {
+        divDetalhes.style.display = 'none';
+        return;
+      }
+
+      const resposta = await fetch(`/api/disciplinas/${id}`);
+      
+      if (resposta.status === 404) {
+        alert('Disciplina não encontrada!');
+        return;
+      }
+
+      const d = await resposta.json();
+      divDetalhes.innerHTML = `ID: ${d.id} | Período: ${d.periodo || 'Não informado'}`;
+      divDetalhes.style.display = 'block';
+    }
+
+    // --- ETAPA 3: Editar ---
+    async function editarDisciplina(id) {
+      const novoNome = prompt("Digite o novo nome da disciplina:");
+      
+      // Se o usuário cancelar o prompt, não faz nada
+      if (novoNome === null) return; 
+
+      const resposta = await fetch(`/api/disciplinas/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: novoNome })
+      });
+
+      if (resposta.status === 200) {
+        carregarDisciplinas(); // Recarrega a lista atualizada
+      } else {
+        const erroJson = await resposta.json();
+        alert(`Erro: ${erroJson.erro || 'Falha ao atualizar'}`);
+      }
+    }
+
+    // Auxiliar para cadastro rápido
+    async function cadastrarDisciplina() {
+      const nome = document.getElementById('inputNome').value;
+      const periodo = document.getElementById('inputPeriodo').value;
+
+      const resposta = await fetch('/api/disciplinas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, periodo: Number(periodo) })
+      });
+
+      if (resposta.ok) {
+        document.getElementById('inputNome').value = '';
+        document.getElementById('inputPeriodo').value = '';
+        carregarDisciplinas();
+      } else {
+        const err = await resposta.json();
+        alert(err.erro);
+      }
+    }
+
+    // Carregar ao iniciar a página
+    carregarDisciplinas();
+  </script>
+</body>
+</html>
 </body>
 </html>
